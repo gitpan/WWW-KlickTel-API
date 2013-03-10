@@ -3,7 +3,7 @@ NAME
     Linux OS
 
 VERSION
-    Version $Revision: 17 $
+    Version $Revision: 23 $
 
 SYNOPSIS
     This module provides a basic access to the KlickTel API (

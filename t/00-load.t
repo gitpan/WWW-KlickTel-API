@@ -7,7 +7,10 @@ use Test::More;
 plan tests => 1;
 
 BEGIN {
-    use_ok('WWW::KlickTel::API') || print "Bail out!\n";
+    use_ok('WWW::KlickTel::API');
 }
 
 diag("Testing WWW::KlickTel::API $WWW::KlickTel::API::VERSION, Perl $], $^X");
+
+# bail out as suggested by CPANAuthorNotes
+BAIL_OUT("Cannot load Module");

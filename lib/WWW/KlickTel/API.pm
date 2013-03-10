@@ -1,6 +1,6 @@
 package WWW::KlickTel::API;
 
-use 5.8.0;
+use 5.008001;  # perl 5.8.1
 use strict;
 use warnings FATAL => 'all';
 use Carp qw(croak carp);
@@ -17,11 +17,11 @@ WWW::KlickTel::API - A module to use the klicktel.de API Services on Linux OS
 
 =head1 VERSION
 
-Version $Revision: 17 $
+Version $Revision: 23 $
 
 =cut
 
-our ($VERSION) = ( q$Revision: 17 $ =~ /(\d+)/ );
+our ($VERSION) = ( q$Revision: 23 $ =~ /(\d+)/ );
 
 =head1 SYNOPSIS
 
