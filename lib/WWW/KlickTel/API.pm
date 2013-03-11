@@ -13,20 +13,23 @@ use Fcntl;
 
 =head1 NAME
 
-WWW::KlickTel::API - A module to use the klicktel.de API Services on Linux OS
+WWW::KlickTel::API - A module to use the klicktel.de API Services
+on Linux OS
 
 =head1 VERSION
 
-Version $Revision: 23 $
+Version $Revision: 31 $
+
+$Id: API.pm 31 2013-03-11 17:08:06Z sysdef $
 
 =cut
 
-our ($VERSION) = ( q$Revision: 23 $ =~ /(\d+)/ );
+our ($VERSION) = ( q$Revision: 31 $ =~ /(\d+)/ );
 
 =head1 SYNOPSIS
 
 This module provides a basic access to the KlickTel API
-( http://openapi.klicktel.de )
+http://openapi.klicktel.de
 
 NOTE: This POC version supports reverse lookups only.
 
@@ -38,7 +41,7 @@ Get an API key at http://openapi.klicktel.de/login/register
   use WWW::KlickTel::API;
 
   my $klicktel = WWW::KlickTel::API->new(
-      api_key       => '01234567890abcdef01234567890abcd',
+      api_key       => '1234567890123456789013456789012',
   );
 
   #     -OR-
@@ -49,21 +52,10 @@ Get an API key at http://openapi.klicktel.de/login/register
 =cut
 
 # --- GLOBAL VARIABLES ---
-# cache results
-my %_phone_number;
+my %cache_invers = ();
 
 # system username
 my $username = $ENV{LOGNAME} || $ENV{USER} || getpwuid($<);
-
-# global settings
-my (
-    $API_KEY,           $PROTOCOL,      $CACHE_PATH,
-    $CACHE_FILE_INVERS, $URI_INVERS,    $REST_TIMEOUT,
-    $REST_CA_FILE,      $CLIENT_CERT,   $CLIENT_KEY,
-    $PROXY_URL
-);
-
-my $REST_object;
 
 =head1 METHODS
 
@@ -88,81 +80,62 @@ Create the object. All parameter are optional.
 =cut
 
 sub new {
-    ref( my $class = shift )
-        && croak 'Class name required';
+    my $class = shift;
     croak 'Odd number of elements passed when even was expected' if @_ % 2;
-
     my %args = @_;
 
-    $API_KEY = $args{'api_key'};
-    if ( !$API_KEY ) {
+    my $self = {
+        PROTOCOL     => $args{protocol}
+            || 'http',
+        CACHE_PATH   => $args{'cache_path'}
+            || '/var/cache/www-klicktel-api/',
+        URI_INVERS   => $args{'uri_invers'}
+            || 'openapi.klicktel.de/searchapi/invers',
+        REST_TIMEOUT => $args{'timeout'}
+            || 10,
+        REST_CA_FILE => $args{'ca_file'}
+            || q{},
+        CLIENT_CERT  => $args{'client_auth'}{'cert'}
+            || q{},
+        CLIENT_KEY   => $args{'client_auth'}{'key'}
+            || q{},
+        PROXY_URL    => $args{'proxy_url'}
+            || q{},
+    };
+
+    $self->{API_KEY} = $args{'api_key'};
+    if ( !$self->{API_KEY} ) {
 
         # checking for user's API Key
-        my $api_key_file = '/home/' . $username . '/.klicktel/api_key.txt';
-        if ( -r $api_key_file ) {
+        $self->{API_KEY_FILE} = '/home/' . $username . '/.klicktel/api_key.txt';
+        if ( -r $self->{API_KEY_FILE} ) {
 
             # loading user's api key
             my $api_key_fh;
-            open $api_key_fh, "<", $api_key_file;
+            open $api_key_fh, "<", $self->{API_KEY_FILE};
             binmode $api_key_fh;
-            read $api_key_fh, $API_KEY, 32;
+            read $api_key_fh, $self->{API_KEY}, 32;
         }
         else {
-            say "Hint: You can save your API Key at $api_key_file";
+            say 'Hint: You can save your API Key at ' . $self->{API_KEY_FILE};
             die('FATAL ERROR: No API Key was given.');
         }
     }
 
-    $PROTOCOL =
-          $args{'protocol'}
-        ? $args{'protocol'}
-        : 'http';
-
-    $CACHE_PATH =
-          $args{'cache_path'}
-        ? $args{'cache_path'}
-        : '/var/cache/www-klicktel-api/';
-
-    $CACHE_FILE_INVERS = $CACHE_PATH . $username . '.invers.dat';
-
-    $URI_INVERS =
-          $args{'uri_invers'}
-        ? $args{'uri_invers'}
-        : 'openapi.klicktel.de/searchapi/invers';
-
-    # REST network options
-    $REST_TIMEOUT =
-          $args{'timeout'}
-        ? $args{'timeout'}
-        : 10;
-
-    $REST_CA_FILE =
-          $args{'ca_file'}
-        ? $args{'ca_file'}
-        : q{};
-
-    $CLIENT_CERT =
-          $args{'client_auth'}{'cert'}
-        ? $args{'client_auth'}{'cert'}
-        : q{};
-
-    $CLIENT_KEY =
-          $args{'client_auth'}{'key'}
-        ? $args{'client_auth'}{'key'}
-        : q{};
-
-    $PROXY_URL =
-          $args{'proxy_url'}
-        ? $args{'proxy_url'}
-        : q{};
+    $self->{CACHE_FILE_INVERS} = $self->{CACHE_PATH} . $username . '.invers.dat';
 
     # invers phone number cache
-    tie %_phone_number, 'DB_File', $CACHE_FILE_INVERS, O_CREAT | O_RDWR, 0666
-        or die "Can't initialize DB_File file ("
-        . $CACHE_FILE_INVERS
-        . " ): $!\n";
+    if ( ref $cache_invers{$self->{CACHE_PATH}} ne 'HASH' ) {
+        tie %{$cache_invers{$self->{CACHE_PATH}}}, 'DB_File',
+          $self->{CACHE_FILE_INVERS}, O_CREAT | O_RDWR, 0666
+          or die "Can't initialize DB_File file ("
+            . $self->{CACHE_FILE_INVERS}
+            . " ): $!\n";
+    }
 
-    return bless {}, $class;
+    bless $self, $class;
+
+    return $self;
 }
 
 =head2 test
@@ -177,36 +150,41 @@ Run selftest
 =cut
 
 sub test {
-    my $number      = shift;
+    my ( $self, $number ) = @_;
     my $error_count = 0;
 
     eval "use Test::Simple tests => 6; 1";
 
-    ok( ( $API_KEY =~ m/^[0-9a-f]{32}\z/ ) == 1, 'API Key format' )
-        or $error_count++;
+    ok(
+        ( defined $self->{API_KEY}
+            and $self->{API_KEY} =~ m/^[0-9a-f]{32}\z/ ) == 1,
+        'API Key format'
+    ) or $error_count++;
 
-    ok( ( $REST_TIMEOUT gt 0 ) and ( $REST_TIMEOUT lt 600 ),
+    ok( ( $self->{REST_TIMEOUT} gt 0 ) and ( $self->{REST_TIMEOUT} lt 600 ),
         'Network Timeout 1-600 seconds' )
         or $error_count++;
 
-    ok( -W $CACHE_PATH, 'writable cachedir (' . $CACHE_PATH . ')' )
+    ok( -W $self->{CACHE_PATH}, 'writable cachedir (' . $self->{CACHE_PATH} . ')' )
         or $error_count++;
 
-    ok( -W $CACHE_FILE_INVERS, 'writable invers cache' )
+    ok( -W $self->{CACHE_FILE_INVERS}, 'writable invers cache' )
         or $error_count++;
 
-    $_phone_number{'test'} = 'test ok';
-    ok( $_phone_number{'test'} eq 'test ok', 'phone number cache connected' )
-        or $error_count++;
-    delete $_phone_number{'test'};
+    $cache_invers{$self->{CACHE_PATH}}{'test'} = 'test ok';
+    ok( $cache_invers{$self->{CACHE_PATH}}{'test'}
+        eq 'test ok', 'phone number cache connected' )
+            or $error_count++;
+    delete $cache_invers{$self->{CACHE_PATH}}{'test'};
 
-    delete $_phone_number{'110'};
-    my $result_hash_ref = invers('110');
+    delete $cache_invers{$self->{CACHE_PATH}}{'110'};
+    my $result_hash_ref = invers($self, '110');
     if ( ref $result_hash_ref->{'response'}{'error'} eq 'HASH' ) {
         warn( "API ERROR MESSAGE: "
-                . $result_hash_ref->{'response'}{'error'}{'message'} );
+            . $result_hash_ref->{'response'}{'error'}{'message'} );
     }
-    ok( eval {
+    ok(
+        eval {
             $result_hash_ref->{'response'}{'results'}[0]{'total'} gt 5000;
         },
         'more than 5000 hits for "Notruf" in reverse lookup for number "110"'
@@ -227,15 +205,15 @@ Do reverse lookups of phone numbers
 =cut
 
 sub invers {
-    my $self   = shift;
-    my $number = shift;
+    my ( $self, $number ) = @_;
+
     my $result = ();
 
-    if ( $_phone_number{$number} ) {
+    if ( $cache_invers{$self->{CACHE_PATH}}{$number} ) {
 
         # number is cached
 
-        my $result_json = $_phone_number{$number};
+        my $result_json = $cache_invers{$self->{CACHE_PATH}}{$number};
         $result = decode_json $result_json;
     }
     else {
@@ -243,23 +221,27 @@ sub invers {
         # number is not cached
 
         # create and configure REST API connection
-        _REST_connect();
+        my $rest_connect = _REST_connect();
 
         # get data
-        $REST_object->GET( $PROTOCOL . '://'
-                . $URI_INVERS . '?' . 'key='
-                . $API_KEY
+        $rest_connect->GET(
+                $self->{PROTOCOL} . '://'
+                . $self->{URI_INVERS} . '?' . 'key='
+                . $self->{API_KEY}
                 . '&number='
                 . $number
-                . '&parents_only=1' );
+                . '&parents_only=1'
+        );
 
-        my $result_json = $REST_object->responseContent();
+        my $result_json = $rest_connect->responseContent();
 
         # save result
-        $_phone_number{$number} = $result_json;
+        $cache_invers{$self->{CACHE_PATH}}{$number} = $result_json;
 
         # decode json construct to hash
         $result = decode_json $result_json;
+
+        undef $rest_connect;
 
     }
 
@@ -277,43 +259,45 @@ Create and configure REST API connection
 =cut
 
 sub _REST_connect {
+    my $self = shift;
 
     # create object
-    $REST_object = REST::Client->new();
+    my $rest_connect = REST::Client->new();
 
     # proxy support
-    if ($PROXY_URL) {
-        $REST_object->getUseragent()->proxy( ['http'], $PROXY_URL );
+    if ($self->{PROXY_URL}) {
+        $rest_connect->getUseragent()->proxy( ['http'], $self->{PROXY_URL} );
     }
 
     # X509 client authentication
-    if ( $CLIENT_CERT and $CLIENT_KEY ) {
-        $REST_object->setCert($CLIENT_CERT);
-        $REST_object->setKey($CLIENT_KEY);
+    if ( $self->{CLIENT_CERT} and $self->{CLIENT_KEY} ) {
+        $rest_connect->setCert($self->{CLIENT_CERT});
+        $rest_connect->setKey($self->{CLIENT_KEY});
     }
 
     # add a CA to verify server certificates
-    if ($REST_CA_FILE) {
-        $REST_object->setCa($REST_CA_FILE);
+    if ($self->{REST_CA_FILE}) {
+        $rest_connect->setCa($self->{REST_CA_FILE});
     }
 
     # timeout on requests, in seconds
-    $REST_object->setTimeout($REST_TIMEOUT);
+    $rest_connect->setTimeout($self->{REST_TIMEOUT});
 
-    return;
+    return $rest_connect;
 }
 
 sub DESTROY {
     my $self = shift;
 
-    untie %_phone_number;
+    untie %{$cache_invers{$self->{CACHE_PATH}}}
+        or die "cannot untie inverse cache in " . $self->{CACHE_PATH};
 
     return;
 }
 
 =head1 AUTHOR
 
-Juergen Heine, C<< < sysdef Æt cpan D0T org > >>
+Juergen Heine, C<< < sysdef AT cpan D0T org > >>
 
 =head1 BUGS
 
@@ -351,7 +335,7 @@ L<http://search.cpan.org/dist/WWW-KlickTel-API/>
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2013 Juergen Heine ( sysdef Æt cpan D0T org ).
+Copyright 2013 Juergen Heine ( sysdef AT cpan D0T org ).
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of the the Artistic License (2.0). You may obtain a

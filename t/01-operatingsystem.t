@@ -7,8 +7,5 @@ use Test::More;
 plan tests => 1;
 
 BEGIN {
-    ok( eval { $^O eq "linux"; } );
+    ok( eval { $^O eq "linux"; } ) || BAIL_OUT("OS unsupported");;
 }
-
-# bail out as suggested by CPANAuthorNotes
-BAIL_OUT("OS unsupported");

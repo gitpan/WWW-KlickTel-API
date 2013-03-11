@@ -3,11 +3,13 @@ NAME
     Linux OS
 
 VERSION
-    Version $Revision: 23 $
+    Version $Revision: 31 $
+
+    $Id: API.pm 31 2013-03-11 17:08:06Z sysdef $
 
 SYNOPSIS
-    This module provides a basic access to the KlickTel API (
-    http://openapi.klicktel.de )
+    This module provides a basic access to the KlickTel API
+    http://openapi.klicktel.de
 
     NOTE: This POC version supports reverse lookups only.
 
@@ -19,7 +21,7 @@ SYNOPSIS
       use WWW::KlickTel::API;
 
       my $klicktel = WWW::KlickTel::API->new(
-          api_key       => '01234567890abcdef01234567890abcd',
+          api_key       => '1234567890123456789013456789012',
       );
 
       #     -OR-
@@ -68,7 +70,7 @@ SUBROUTINES (for internal use only)
       _REST_connect();
 
 AUTHOR
-    Juergen Heine, "< sysdef Æt cpan D0T org >"
+    Juergen Heine, "< sysdef AT cpan D0T org >"
 
 BUGS
     Please report any bugs or feature requests to "bug-www-klicktel-api at
@@ -101,7 +103,7 @@ SUPPORT
         <http://search.cpan.org/dist/WWW-KlickTel-API/>
 
 LICENSE AND COPYRIGHT
-    Copyright 2013 Juergen Heine ( sysdef Æt cpan D0T org ).
+    Copyright 2013 Juergen Heine ( sysdef AT cpan D0T org ).
 
     This program is free software; you can redistribute it and/or modify it
     under the terms of the the Artistic License (2.0). You may obtain a copy

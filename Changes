@@ -1,4 +1,12 @@
 Revision history for WWW-KlickTel-API
+$Id: Changes 30 2013-03-11 15:51:46Z sysdef $
 
-1       2013-03-08
+17      2013-03-08
         First version, released on an unsuspecting world.
+
+23      2013-03-10
+        few minor fixes. better tests (BAIL_OUT)
+
+30      2013-03-11
+        object based configuration
+        smarter cache file handling
