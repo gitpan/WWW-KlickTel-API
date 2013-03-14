@@ -13,18 +13,17 @@ use Fcntl;
 
 =head1 NAME
 
-WWW::KlickTel::API - A module to use the klicktel.de API Services
-on Linux OS
+WWW::KlickTel::API - A module to use openapi.klicktel.de (Linux only)
 
 =head1 VERSION
 
-Version $Revision: 31 $
+Version $Revision: 34 $
 
-$Id: API.pm 31 2013-03-11 17:08:06Z sysdef $
+$Id: API.pm 34 2013-03-14 14:51:02Z sysdef $
 
 =cut
 
-our ($VERSION) = ( q$Revision: 31 $ =~ /(\d+)/ );
+our ($VERSION) = ( q$Revision: 34 $ =~ /(\d+)/ );
 
 =head1 SYNOPSIS
 

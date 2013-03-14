@@ -22,4 +22,4 @@ requires:
   JSON::XS: 2.32
   REST::Client: 240
   Test::More: 0
-version: 31
+version: 34

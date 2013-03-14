@@ -1,11 +1,10 @@
 NAME
-    WWW::KlickTel::API - A module to use the klicktel.de API Services on
-    Linux OS
+    WWW::KlickTel::API - A module to use openapi.klicktel.de (Linux only)
 
 VERSION
-    Version $Revision: 31 $
+    Version $Revision: 34 $
 
-    $Id: API.pm 31 2013-03-11 17:08:06Z sysdef $
+    $Id: API.pm 34 2013-03-14 14:51:02Z sysdef $
 
 SYNOPSIS
     This module provides a basic access to the KlickTel API

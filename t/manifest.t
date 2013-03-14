@@ -1,4 +1,7 @@
 #!perl -T
+
+# $Id: manifest.t 32 2013-03-14 14:32:24Z sysdef $
+
 use 5.006;
 use strict;
 use warnings FATAL => 'all';

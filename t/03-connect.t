@@ -1,4 +1,7 @@
 #!perl -T
+
+# $Id: 03-connect.t 32 2013-03-14 14:32:24Z sysdef $
+
 use 5.006;
 use strict;
 use warnings FATAL => 'all';
@@ -17,7 +20,8 @@ BEGIN {
                 my $message =
                     $result_hash_ref->{'response'}{'error'}{'message'};
                 my $test_text =
-                    'die Sie beim Erstellen des Keys angegeben haben, vorgenommen werden.';
+                    'die Sie beim Erstellen des Keys angegeben haben,'
+                        . ' vorgenommen werden.';
 
                 return 1 if $message =~ /$test_text\z/;
                 return 0;
